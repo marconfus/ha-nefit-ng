@@ -128,15 +128,14 @@ class NefitThermostat(ClimateDevice):
             self._data['temp_setpoint'] = float(data['value']['TSP'])
             self._data['inhouse_temperature'] = float(data['value']['IHT'])
             self._data['user_mode'] = data['value']['UMD']
-            self._stateattr['current_time'] = data['value']['CTD']
-
-        if data['id'] == '/heatingCircuits/hc1/actualSupplyTemperature':
+            self._stateattr['current_time'] = data['value']['CTD']        
+        elif data['id'] == '/heatingCircuits/hc1/actualSupplyTemperature':
             self._stateattr['supply_temperature'] = data['value']
-
-        if data['id'] == '/system/appliance/systemPressure':
-            self._stateattr['system_pressure'] = data['value']
-            
-        if data['id'] == '/ecus/rrc/recordings/yearTotal':
+        elif data['id'] == '/system/sensors/temperatures/outdoor_t1':
+            self._stateattr['outdoor_temperature'] = data['value']
+        elif data['id'] == '/system/appliance/systemPressure':
+            self._stateattr['system_pressure'] = data['value']            
+        elif data['id'] == '/ecus/rrc/recordings/yearTotal':
             self._stateattr['year_total'] = data['value']
             
     async def async_update(self):
@@ -145,6 +144,7 @@ class NefitThermostat(ClimateDevice):
         _LOGGER.debug("async_update called")
         self._client.get('/ecus/rrc/uiStatus')
         self._client.get('/heatingCircuits/hc1/actualSupplyTemperature')
+        self._client.get('/system/sensors/temperatures/outdoor_t1')
         self._client.get('/system/appliance/systemPressure')
         self._client.get('/ecus/rrc/recordings/yearTotal')
 
