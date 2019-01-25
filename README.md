@@ -38,5 +38,3 @@ sensor:
         value_template: "{{ state_attr('climate.heating', 'year_total') }}"
 ```
 To see what state attributes are available open "States" in the Home Assistant Developer tools.
-
-At the moment it takes one update cycle (default 1 min) before the data is available after a restart.
