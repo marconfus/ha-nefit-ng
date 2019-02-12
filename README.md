@@ -38,3 +38,13 @@ sensor:
         value_template: "{{ state_attr('climate.heating', 'year_total') }}"
 ```
 To see what state attributes are available open "States" in the Home Assistant Developer tools.
+
+## Debugging problems
+
+```
+logger:
+  default: info
+  logs:
+    custom_components.climate.nefit: debug
+    aionefit: debug
+```
