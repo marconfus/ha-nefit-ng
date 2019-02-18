@@ -4,7 +4,7 @@ For more details about this platform, please refer to the documentation at
 https://home-assistant.io/components/xxxxxx/
 """
 
-REQUIREMENTS = ['aionefit==0.3', 'https://github.com/marconfus/slixmpp/archive/master.zip#slixmpp==1.4.2.1']
+REQUIREMENTS = ['aionefit==0.3']
 
 import asyncio
 import concurrent
