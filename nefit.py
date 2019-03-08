@@ -14,8 +14,8 @@ from homeassistant.exceptions import PlatformNotReady, InvalidStateError
 import logging
 import voluptuous as vol
 
-from homeassistant.components.climate import (ClimateDevice, PLATFORM_SCHEMA,
-    STATE_AUTO, STATE_MANUAL, 
+from homeassistant.components.climate import (ClimateDevice, PLATFORM_SCHEMA)
+from homeassistant.components.climate.const import (STATE_AUTO, STATE_MANUAL, 
     SUPPORT_TARGET_TEMPERATURE, SUPPORT_OPERATION_MODE)
 from homeassistant.const import TEMP_CELSIUS, ATTR_TEMPERATURE
 from homeassistant.const import STATE_UNKNOWN, EVENT_HOMEASSISTANT_STOP
