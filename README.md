@@ -3,6 +3,11 @@ Home Assistant Nefit climate component
 
 ## Installation
 
+Create ```custom_components/nefit/``` in your homeassistant config directory and copy the file [```nefit.py```](https://raw.githubusercontent.com/marconfus/ha-nefit-ng/master/nefit.py) into it with the filename ```climate.py``` also create an empty file with the name ```__init__.py``` into the same folder..
+
+
+BEFORE Home Assistant version **0.88**:
+
 Create ```custom_components/climate/``` in your homeassistant config directory and copy the file [```nefit.py```](https://raw.githubusercontent.com/marconfus/ha-nefit-ng/master/nefit.py) into it.
 
 Please ignore all instructions about manually installing python packages as they are outdated!
