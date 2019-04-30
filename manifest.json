@@ -1,0 +1,12 @@
+{
+  "domain": "nefit",
+  "name": "nefit Bosch Therostat",
+  "documentation": "https://github.com/marconfus/ha-nefit-ng",
+  "dependencies": [],
+  "codeowners": [
+    "@marconfus"
+  ],
+  "requirements": [
+    "aionefit==0.3"
+  ]
+}
