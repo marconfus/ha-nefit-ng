@@ -17,7 +17,7 @@ import voluptuous as vol
 from homeassistant.components.climate import (ClimateDevice, PLATFORM_SCHEMA)
 from homeassistant.components.climate.const import (SUPPORT_TARGET_TEMPERATURE, SUPPORT_PRESET_MODE,
     CURRENT_HVAC_IDLE, CURRENT_HVAC_HEAT,
-    HVAC_MODE_HEAT, HVAC_MODE_OFF)
+    HVAC_MODE_AUTO)
 from homeassistant.const import TEMP_CELSIUS, ATTR_TEMPERATURE
 from homeassistant.const import STATE_UNKNOWN, EVENT_HOMEASSISTANT_STOP
 
@@ -26,8 +26,8 @@ _LOGGER = logging.getLogger(__name__)
 SUPPORT_FLAGS = (SUPPORT_TARGET_TEMPERATURE | SUPPORT_PRESET_MODE)
 
 # supported operating modes (preset mode)
-OPERATION_MANUAL = "manual"
-OPERATION_CLOCK = "clock"
+OPERATION_MANUAL = "Manual"
+OPERATION_CLOCK = "Clock"
 
 CONF_NAME = "name"
 CONF_SERIAL = "serial"
@@ -76,7 +76,7 @@ class NefitThermostat(ClimateDevice):
         self._attributes = {}
         self._stateattr = {}
         self._data = {}
-        self._hvac_modes = [HVAC_MODE_HEAT, HVAC_MODE_OFF]
+        self._hvac_modes = [HVAC_MODE_AUTO]
         self._url_events = {
             '/ecus/rrc/uiStatus': asyncio.Event(),
             '/heatingCircuits/hc1/actualSupplyTemperature': asyncio.Event(),
@@ -205,16 +205,20 @@ class NefitThermostat(ClimateDevice):
 
     @property
     def hvac_mode(self):
-        if self._stateattr.get('boiler_indicator') == 'CH': #HW (hot water) is not climate
-            return HVAC_MODE_HEAT
-        else:
-            return HVAC_MODE_OFF
+        return HVAC_MODE_AUTO
     
+    @property
+    def hvac_action(self):
+        """Return the current running hvac operation if supported."""
+        if self._stateattr.get('boiler_indicator') == 'CH': #HW (hot water) is not for climate
+            return CURRENT_HVAC_HEAT
+        
+        return CURRENT_HVAC_IDLE
+
     @property
     def preset_modes(self):
         """Return available preset modes."""
         return [
-            OPERATION_MANUAL,
             OPERATION_CLOCK
         ]
 
@@ -223,11 +227,11 @@ class NefitThermostat(ClimateDevice):
     def preset_mode(self):
         """Return the current preset mode."""
         if self._data.get('user_mode') == 'manual':
-            return OPERATION_MANUAL
+            return None
         elif self._data.get('user_mode') == 'clock':
             return OPERATION_CLOCK
         else:
-            return OPERATION_MANUAL
+            return None
 
     @property
     def device_state_attributes(self):
@@ -248,10 +252,10 @@ class NefitThermostat(ClimateDevice):
     async def async_set_preset_mode(self, preset_mode):
         """Set new target operation mode."""
         _LOGGER.debug("set_preset_mode called mode={}.".format(preset_mode))
-        if preset_mode == OPERATION_MANUAL:
-            new_mode = OPERATION_MANUAL
+        if preset_mode == OPERATION_CLOCK:
+            new_mode = "clock"
         else:
-            new_mode = OPERATION_CLOCK
+            new_mode = "manual"
 
         self._client.set_usermode(new_mode)
         await asyncio.wait_for(self._client.xmppclient.message_event.wait(), timeout=10.0)
