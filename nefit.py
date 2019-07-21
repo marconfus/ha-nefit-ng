@@ -15,17 +15,19 @@ import logging
 import voluptuous as vol
 
 from homeassistant.components.climate import (ClimateDevice, PLATFORM_SCHEMA)
-from homeassistant.components.climate.const import (STATE_AUTO, STATE_MANUAL, 
-    SUPPORT_TARGET_TEMPERATURE, SUPPORT_OPERATION_MODE)
+from homeassistant.components.climate.const import (SUPPORT_TARGET_TEMPERATURE, SUPPORT_PRESET_MODE,
+    CURRENT_HVAC_IDLE, CURRENT_HVAC_HEAT,
+    HVAC_MODE_AUTO)
 from homeassistant.const import TEMP_CELSIUS, ATTR_TEMPERATURE
 from homeassistant.const import STATE_UNKNOWN, EVENT_HOMEASSISTANT_STOP
 
 _LOGGER = logging.getLogger(__name__)
 
-SUPPORT_FLAGS = (SUPPORT_TARGET_TEMPERATURE | SUPPORT_OPERATION_MODE)
+SUPPORT_FLAGS = (SUPPORT_TARGET_TEMPERATURE | SUPPORT_PRESET_MODE)
 
-OPERATION_MANUAL = "manual"
-OPERATION_AUTO = "auto"
+# supported operating modes (preset mode)
+OPERATION_MANUAL = "Manual"
+OPERATION_CLOCK = "Clock"
 
 CONF_NAME = "name"
 CONF_SERIAL = "serial"
@@ -74,7 +76,7 @@ class NefitThermostat(ClimateDevice):
         self._attributes = {}
         self._stateattr = {}
         self._data = {}
-        self._operation_list = [OPERATION_MANUAL, OPERATION_AUTO]
+        self._hvac_modes = [HVAC_MODE_AUTO]
         self._url_events = {
             '/ecus/rrc/uiStatus': asyncio.Event(),
             '/heatingCircuits/hc1/actualSupplyTemperature': asyncio.Event(),
@@ -145,7 +147,7 @@ class NefitThermostat(ClimateDevice):
             self._data['temp_setpoint'] = float(data['value']['TSP'])
             self._data['inhouse_temperature'] = float(data['value']['IHT'])
             self._data['user_mode'] = data['value']['UMD']
-            self._stateattr['boiler_indicator_raw'] = data['value']['BAI']
+            self._stateattr['boiler_indicator'] = data['value']['BAI']
             self._stateattr['current_time'] = data['value']['CTD']        
         elif data['id'] == '/heatingCircuits/hc1/actualSupplyTemperature':
             self._stateattr['supply_temperature'] = data['value']
@@ -197,18 +199,39 @@ class NefitThermostat(ClimateDevice):
         return self._data.get('temp_setpoint')
 
     @property
-    def operation_list(self):
-        """List of available operation modes."""
-        return [STATE_AUTO, STATE_MANUAL]
+    def hvac_modes (self):
+        """List of available modes."""
+        return self._hvac_modes
 
     @property
-    def current_operation(self):
+    def hvac_mode(self):
+        return HVAC_MODE_AUTO
+    
+    @property
+    def hvac_action(self):
+        """Return the current running hvac operation if supported."""
+        if self._stateattr.get('boiler_indicator') == 'CH': #HW (hot water) is not for climate
+            return CURRENT_HVAC_HEAT
+        
+        return CURRENT_HVAC_IDLE
+
+    @property
+    def preset_modes(self):
+        """Return available preset modes."""
+        return [
+            OPERATION_CLOCK
+        ]
+
+
+    @property
+    def preset_mode(self):
+        """Return the current preset mode."""
         if self._data.get('user_mode') == 'manual':
-            return OPERATION_MANUAL
+            return None
         elif self._data.get('user_mode') == 'clock':
-            return OPERATION_AUTO
+            return OPERATION_CLOCK
         else:
-            return STATE_UNKNOWN
+            return None
 
     @property
     def device_state_attributes(self):
@@ -226,13 +249,13 @@ class NefitThermostat(ClimateDevice):
         """Return the maximum temperature."""
         return self.config.get(CONF_MAX_TEMP)
 
-    async def async_set_operation_mode(self, operation_mode):
+    async def async_set_preset_mode(self, preset_mode):
         """Set new target operation mode."""
-        _LOGGER.debug("set_operation_mode called mode={}.".format(operation_mode))
-        if operation_mode == "manual":
-            new_mode = "manual"
-        else:
+        _LOGGER.debug("set_preset_mode called mode={}.".format(preset_mode))
+        if preset_mode == OPERATION_CLOCK:
             new_mode = "clock"
+        else:
+            new_mode = "manual"
 
         self._client.set_usermode(new_mode)
         await asyncio.wait_for(self._client.xmppclient.message_event.wait(), timeout=10.0)
