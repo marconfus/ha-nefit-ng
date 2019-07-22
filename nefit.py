@@ -17,7 +17,7 @@ import voluptuous as vol
 from homeassistant.components.climate import (ClimateDevice, PLATFORM_SCHEMA)
 from homeassistant.components.climate.const import (SUPPORT_TARGET_TEMPERATURE, SUPPORT_PRESET_MODE,
     CURRENT_HVAC_IDLE, CURRENT_HVAC_HEAT,
-    HVAC_MODE_AUTO)
+    HVAC_MODE_HEAT)
 from homeassistant.const import TEMP_CELSIUS, ATTR_TEMPERATURE
 from homeassistant.const import STATE_UNKNOWN, EVENT_HOMEASSISTANT_STOP
 
@@ -76,7 +76,7 @@ class NefitThermostat(ClimateDevice):
         self._attributes = {}
         self._stateattr = {}
         self._data = {}
-        self._hvac_modes = [HVAC_MODE_AUTO]
+        self._hvac_modes = [HVAC_MODE_HEAT]
         self._url_events = {
             '/ecus/rrc/uiStatus': asyncio.Event(),
             '/heatingCircuits/hc1/actualSupplyTemperature': asyncio.Event(),
@@ -98,7 +98,7 @@ class NefitThermostat(ClimateDevice):
         _LOGGER.debug("Waiting for connected event")        
         try:
             # await self._client.xmppclient.connected_event.wait()
-            await asyncio.wait_for(self._client.xmppclient.connected_event.wait(), timeout=5.0)
+            await asyncio.wait_for(self._client.xmppclient.connected_event.wait(), timeout=10.0)
             _LOGGER.debug("adding stop listener")
             self.hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP,
                                             self._shutdown)
@@ -205,7 +205,7 @@ class NefitThermostat(ClimateDevice):
 
     @property
     def hvac_mode(self):
-        return HVAC_MODE_AUTO
+        return HVAC_MODE_HEAT
     
     @property
     def hvac_action(self):
@@ -265,6 +265,7 @@ class NefitThermostat(ClimateDevice):
     async def async_set_temperature(self, **kwargs):
         """Set new target temperature."""
         temperature = kwargs.get(ATTR_TEMPERATURE)
+        self._data['target_temperature'] = temperature
         _LOGGER.debug("set_temperature called (temperature={}).".format(temperature))
         self._client.set_temperature(temperature)
         await asyncio.wait_for(self._client.xmppclient.message_event.wait(), timeout=10.0)
