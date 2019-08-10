@@ -82,6 +82,7 @@ class NefitThermostat(ClimateDevice):
             '/heatingCircuits/hc1/actualSupplyTemperature': asyncio.Event(),
             '/system/sensors/temperatures/outdoor_t1': asyncio.Event(),
             '/system/appliance/systemPressure': asyncio.Event(),
+            '/system/appliance/displaycode': asyncio.Event(),
             '/ecus/rrc/recordings/yearTotal': asyncio.Event()
         }
 
@@ -148,7 +149,9 @@ class NefitThermostat(ClimateDevice):
             self._data['inhouse_temperature'] = float(data['value']['IHT'])
             self._data['user_mode'] = data['value']['UMD']
             self._stateattr['boiler_indicator'] = data['value']['BAI']
-            self._stateattr['current_time'] = data['value']['CTD']        
+            self._stateattr['current_time'] = data['value']['CTD']
+        elif data['id'] == '/system/appliance/displaycode':
+            self._stateattr['status'] = self.get_status(data['value'])
         elif data['id'] == '/heatingCircuits/hc1/actualSupplyTemperature':
             self._stateattr['supply_temperature'] = data['value']
         elif data['id'] == '/system/sensors/temperatures/outdoor_t1':
@@ -219,6 +222,7 @@ class NefitThermostat(ClimateDevice):
     def preset_modes(self):
         """Return available preset modes."""
         return [
+            OPERATION_MANUAL,
             OPERATION_CLOCK
         ]
 
@@ -227,11 +231,11 @@ class NefitThermostat(ClimateDevice):
     def preset_mode(self):
         """Return the current preset mode."""
         if self._data.get('user_mode') == 'manual':
-            return None
+            return OPERATION_MANUAL
         elif self._data.get('user_mode') == 'clock':
             return OPERATION_CLOCK
         else:
-            return None
+            return OPERATION_MANUAL
 
     @property
     def device_state_attributes(self):
@@ -276,3 +280,31 @@ class NefitThermostat(ClimateDevice):
     def _shutdown(self, event):
         _LOGGER.debug("shutdown")
         self._client.disconnect()
+
+    def get_status(self, code):
+        display_codes = {
+            '-H': 'central heating active',
+            '=H': 'hot water active',
+            '0C': 'system starting',
+            '0L': 'system starting',
+            '0U': 'system starting',
+            '0E': 'system waiting',
+            '0H': 'system standby',
+            '0A': 'system waiting (boiler cannot transfer heat to central heating)',
+            '0Y': 'system waiting (boiler cannot transfer heat to central heating)',
+            '2E': 'boiler water pressure too low',
+            'H07': 'boiler water pressure too low',
+            '2F': 'sensors measured abnormal temperature',
+            '2L': 'sensors measured abnormal temperature',
+            '2P': 'sensors measured abnormal temperature',
+            '2U': 'sensors measured abnormal temperature',
+            '4F': 'sensors measured abnormal temperature',
+            '4L': 'sensors measured abnormal temperature',
+            '6A': 'burner doesn\'t ignite',
+            '6C': 'burner doesn\'t ignite',
+            'rE': 'system restarting'
+        }
+        if code in display_codes:
+            return display_codes[code]
+        else:
+            return 'unknown code '+code
