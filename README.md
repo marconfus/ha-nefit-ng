@@ -1,3 +1,7 @@
+For a more up to date version see here: https://github.com/ksya/ha-nefiteasy
+
+
+
 # ha-nefit
 Home Assistant Nefit climate component
 
